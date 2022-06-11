@@ -1,12 +1,12 @@
 import { BigNumber, ethers } from "ethers";
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 import React from "react";
 import { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import styles from "../styles/Home.module.css";
 
-const ecrecover = async (rawHexData: string): Promise<ComputedFields> => {
+const ecrecover = async (rawHexData: string): Promise<ComputedFields | undefined> => {
     try {
         let transactionHashData;
         let signature;
@@ -16,7 +16,6 @@ const ecrecover = async (rawHexData: string): Promise<ComputedFields> => {
             const [chainId, nonce, maxPriorityGasFee, maxFeePerGas, gasLimit, destination, amount, data, , v, r, s] =
                 ethers.utils.RLP.decode("0x" + rawHexData.trim().substring(4));
 
-            console.log("amount: ", amount);
             transactionHashData = {
                 gasLimit: BigNumber.from(gasLimit),
                 maxFeePerGas: BigNumber.from(maxFeePerGas),
@@ -68,7 +67,8 @@ const ecrecover = async (rawHexData: string): Promise<ComputedFields> => {
 
         return { publicKey, compressedKey, hashedPublicKey, address };
     } catch (ex: unknown) {
-        throw ex;
+        toast.error("Uh oh, something went wrong");
+        return undefined;
     }
 };
 
@@ -85,7 +85,6 @@ const Home: NextPage = () => {
 
     const updateFields = async (rawHash: string) => {
         const result = await ecrecover(rawHash);
-        console.log(result);
         setComputedFields(result);
     };
 
@@ -98,29 +97,42 @@ const Home: NextPage = () => {
             </Head>
 
             <main className={styles.main}>
-                <h3 className={styles.title}>Recover public key from raw tx hash</h3>
-                <h4>Background Info</h4>
-                <p>Public keys are either</p>
+                <h3 className={styles.title}>Recover public key from raw Ethereum tx data</h3>
+                <div className="py-4"></div>
                 <p>
-                    1. 65 bytes long and{" "}
-                    <code>
-                        <span style={{ color: "red" }}>0x04</span> || uncompressed public key
-                    </code>
-                    <br></br>
-                    2. 33 bytes long and{" "}
-                    <code>
-                        <span style={{ color: "red" }}>0x02</span> or <span style={{ color: "red" }}>0x03</span> ||
-                        compressed public key
-                    </code>
+                    This is a tool to help recover public keys from Ethereum raw tx data, which supports both post
+                    EIP-1559 tx/s and pre EIP-1559 (i.e. after EIP-155).
                 </p>
+                <div className="py-3"></div>
+                <div>
+                    <h4 className="font-bold font-xl">Background Info</h4>
+                    <div className="py-2"></div>
+                    <p>Public keys are either</p>
+                    <div>
+                        1. 65 bytes long and look like
+                        <div className="py-1"></div>
+                        <code className="text-xs">
+                            <span style={{ color: "red" }}>0x04</span> || uncompressed public key
+                        </code>
+                        <div className="py-3"></div>
+                        2. 33 bytes long and look like <br></br>
+                        <div className="py-1"></div>
+                        <code className="text-xs">
+                            <span style={{ color: "red" }}>0x02</span> or <span style={{ color: "red" }}>0x03</span> ||
+                            compressed public key
+                        </code>
+                    </div>
+                    <div className="py-2"></div>
+                    <p>
+                        <span style={{ color: "#04EBFB" }}>Ethereum addresses</span> are the last 20 bytes of the hash
+                        of the uncompressed public key{" "}
+                    </p>
+                </div>
+
                 <div className="py-2"></div>
-                <p>
-                    <span style={{ color: "green" }}>Ethereum addresses</span> are the last 20 bytes of the hash of the
-                    uncompressed public key{" "}
-                </p>
                 <input
                     type="text"
-                    placeholder="Enter raw tx hash"
+                    placeholder="Enter raw tx data (in hex)"
                     value={rawTxHash}
                     onChange={(e) => setRawTxHash(e.target.value)}
                 />
@@ -129,7 +141,7 @@ const Home: NextPage = () => {
                 <div className="py-4"></div>
 
                 {computedFields && (
-                    <div>
+                    <div style={{ wordBreak: "break-word" }}>
                         <p>
                             <strong>Public key: </strong>
                             <span style={{ color: "red" }}>{computedFields.publicKey.substring(0, 4)}</span>
@@ -150,7 +162,7 @@ const Home: NextPage = () => {
                                     computedFields.hashedPublicKey.length - 40
                                 )}
                             </span>
-                            <span style={{ color: "green" }}>
+                            <span style={{ color: "#04EBFB" }}>
                                 {computedFields.hashedPublicKey.substring(computedFields.hashedPublicKey.length - 40)}
                             </span>
                         </p>
@@ -166,6 +178,7 @@ const Home: NextPage = () => {
                     Built by <a href="https://twitter.com/amirbolous">Amir</a> and{" "}
                     <a href="https://github.com/amirgamil/pubKeyRecover">open source</a> on Github
                 </footer>
+                <Toaster />
             </main>
         </div>
     );

@@ -23,6 +23,7 @@ a {
 input {
     background: transparent;
     padding: 0.2rem 0.5rem;
+    width: 100%;
     border: 1px solid white;
     outline: none;
 }
@@ -40,4 +41,11 @@ button {
 button:hover {
     background: white;
     color: black;
+}
+
+code {
+    background-color: white;
+    color: black;
+    padding: 0.25rem;
+    border-radius: 4px;
 }
