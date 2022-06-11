@@ -100,7 +100,7 @@ const Home: NextPage = () => {
                 <h3 className={styles.title}>Recover public key from raw Ethereum tx data</h3>
                 <div className="py-4"></div>
                 <p>
-                    This is a tool to help recover public keys from Ethereum raw tx data, which supports both
+                    This is a tool to help recover public keys from Ethereum raw tx data, which supports both{" "}
                     <a href="https://eips.ethereum.org/EIPS/eip-1559">EIP-1559</a> tx/s and{" "}
                     <a href="https://eips.ethereum.org/EIPS/eip-155">EIP-155</a> tx/s (i.e. before EIP-1559).
                 </p>
