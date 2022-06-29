@@ -10,11 +10,28 @@ const ecrecover = async (rawHexData: string): Promise<ComputedFields | undefined
     try {
         let transactionHashData;
         let signature;
+        let v;
+        let r;
+        let s;
         //Post EIP-1559 raw transaction hex
         if (rawHexData.startsWith("0x02")) {
             //remove the 0x02 before rlp decoding
-            const [chainId, nonce, maxPriorityGasFee, maxFeePerGas, gasLimit, destination, amount, data, , v, r, s] =
-                ethers.utils.RLP.decode("0x" + rawHexData.trim().substring(4));
+            const [
+                chainId,
+                nonce,
+                maxPriorityGasFee,
+                maxFeePerGas,
+                gasLimit,
+                destination,
+                amount,
+                data,
+                ,
+                vconst,
+                rconst,
+                sconst,
+            ] = ethers.utils.RLP.decode("0x" + rawHexData.trim().substring(4));
+
+            [v, r, s] = [vconst, rconst, sconst];
 
             transactionHashData = {
                 gasLimit: BigNumber.from(gasLimit),
@@ -28,6 +45,10 @@ const ecrecover = async (rawHexData: string): Promise<ComputedFields | undefined
                 data: data,
             };
 
+            if (v === undefined || !r || !s) {
+                throw new Error("Undefined r, s, or v");
+            }
+
             //yes this is hacky, ik numbers in javascript suck
             const expandedSig = { r: r, s: s, v: v === "0x" ? 0 : 1 };
             signature = ethers.utils.joinSignature(expandedSig);
@@ -35,7 +56,7 @@ const ecrecover = async (rawHexData: string): Promise<ComputedFields | undefined
             const messageLowerCase = rawHexData.trim().toLowerCase();
             if (!messageLowerCase.match(/^0x([0-9a-f]{2})*$/)) throw new Error("Invalid hex string");
             transactionHashData = ethers.utils.parseTransaction(messageLowerCase);
-            if (!transactionHashData.r || !transactionHashData.s || !transactionHashData.v) {
+            if (!transactionHashData.r || !transactionHashData.s || transactionHashData.v === undefined) {
                 throw new Error("Undefined r, s, or v");
             }
 
@@ -46,6 +67,7 @@ const ecrecover = async (rawHexData: string): Promise<ComputedFields | undefined
                     transactionHashData.v % 2 === 1 ? "0x1b" : "0x1c",
                 ])
             );
+            [v, r, s] = [transactionHashData.v, transactionHashData.r, transactionHashData.s];
             delete transactionHashData.hash;
             delete transactionHashData.from;
             delete transactionHashData.v;
@@ -65,7 +87,7 @@ const ecrecover = async (rawHexData: string): Promise<ComputedFields | undefined
         const hashedPublicKey = ethers.utils.keccak256(ethers.utils.hexDataSlice(publicKey, 1));
         const address = ethers.utils.computeAddress(publicKey);
 
-        return { publicKey, compressedKey, hashedPublicKey, address };
+        return { publicKey, compressedKey, hashedPublicKey, address, v, r, s, signature };
     } catch (ex: unknown) {
         toast.error("Uh oh, something went wrong");
         return undefined;
@@ -77,6 +99,10 @@ interface ComputedFields {
     compressedKey: string;
     hashedPublicKey: string;
     address: string;
+    v: string;
+    r: string;
+    s: string;
+    signature: string;
 }
 
 const Home: NextPage = () => {
@@ -171,6 +197,26 @@ const Home: NextPage = () => {
                         <p>
                             <strong>Recovered address: </strong>
                             {computedFields.address}
+                        </p>
+                        <br></br>
+                        <p>
+                            <strong>v: </strong>
+                            {computedFields.v}
+                        </p>
+                        <br></br>
+                        <p>
+                            <strong>r: </strong>
+                            {computedFields.r}
+                        </p>
+                        <br></br>
+                        <p>
+                            <strong>s: </strong>
+                            {computedFields.s}
+                        </p>
+                        <br></br>
+                        <p>
+                            <strong>signature: </strong>
+                            {computedFields.signature}
                         </p>
                         <br></br>
                     </div>
